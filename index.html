@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>诗词学习小软件</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="诗词学习">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23B04A3C'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23FFFDF7' font-family='KaiTi,serif'%3E%E8%AF%97%3C/text%3E%3C/svg%3E">
+<script src="data/poems.js"></script>
+<style>
+/* ============ 设计变量 ============ */
+:root{
+  --paper:#F5EFDF;          /* 宣纸底色 */
+  --card:#FFFDF7;           /* 卡片白 */
+  --ink:#2E2A24;            /* 墨色 */
+  --ink-soft:#5C554A;       /* 淡墨 */
+  --ink-faint:#8C8474;      /* 更淡 */
+  --cinnabar:#B04A3C;       /* 朱砂红 */
+  --cinnabar-dark:#933B2F;
+  --jade:#4E7E7C;           /* 青碧 */
+  --gold:#C99A3F;           /* 赭黄 */
+  --line:#E2D8C2;           /* 细线 */
+  --shadow:0 2px 10px rgba(70,55,30,.08);
+  --font-poem:"KaiTi","STKaiti","楷体","Noto Serif SC","SimSun",serif;
+  --font-ui:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:auto}
+body{
+  font-family:var(--font-ui);
+  color:var(--ink);
+  background-color:var(--paper);
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(176,74,60,.035), transparent 40%),
+    radial-gradient(circle at 85% 70%, rgba(78,126,124,.04), transparent 45%);
+  min-height:100vh;
+  line-height:1.6;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.hidden{display:none !important}
+
+/* ============ 顶栏 ============ */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(245,239,223,.92);
+  backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  max-width:1180px;margin:0 auto;padding:10px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.brand{display:flex;align-items:center;gap:10px;cursor:pointer}
+.brand-seal{
+  width:38px;height:38px;border-radius:8px;background:var(--cinnabar);
+  display:flex;align-items:center;justify-content:center;
+  color:#FFFDF7;font-family:var(--font-poem);font-size:24px;
+  box-shadow:0 2px 6px rgba(176,74,60,.35);
+}
+.brand-name{font-family:var(--font-poem);font-size:24px;font-weight:700;letter-spacing:2px}
+.brand-sub{font-size:11px;color:var(--ink-faint);letter-spacing:3px}
+.top-actions{display:flex;gap:8px}
+.icon-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:8px;border:1px solid var(--line);
+  background:var(--card);font-size:14px;color:var(--ink-soft);
+  transition:all .15s;
+}
+.icon-btn:hover{border-color:var(--cinnabar);color:var(--cinnabar)}
+.icon-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn .badge{
+  min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+  background:var(--cinnabar);color:#fff;font-size:11px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+
+/* ============ 主容器 ============ */
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+
+/* ============ 首页 Hero ============ */
+.hero{
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:26px 30px;box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
+}
+.hero-title{font-family:var(--font-poem);font-size:32px;font-weight:700;letter-spacing:3px}
+.hero-desc{color:var(--ink-soft);font-size:14px;margin-top:6px}
+.progress-box{min-width:280px;flex:1;max-width:420px}
+.progress-label{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);margin-bottom:6px}
+.progress-label b{color:var(--cinnabar);font-size:15px}
+.progress-track{height:10px;border-radius:5px;background:#ECE3CE;overflow:hidden}
+.progress-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--cinnabar),#D0735F);transition:width .4s}
+.hero-stats{display:flex;gap:18px;margin-top:14px}
+.stat{text-align:center}
+.stat-num{font-family:var(--font-poem);font-size:26px;font-weight:700;color:var(--jade)}
+.stat-name{font-size:12px;color:var(--ink-faint)}
+
+/* ============ 筛选与搜索 ============ */
+.toolbar-row{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  margin:26px 0 18px;flex-wrap:wrap;
+}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{
+  padding:8px 16px;border-radius:20px;font-size:14px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink-soft);
+  transition:all .15s;
+}
+.tab:hover{border-color:var(--cinnabar);color:var(--cinnabar)}
+.tab.active{background:var(--cinnabar);border-color:var(--cinnabar);color:#fff}
+.search-box{position:relative}
+.search-box svg{
+  position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  width:16px;height:16px;fill:none;stroke:var(--ink-faint);stroke-width:2;
+}
+.search-box input{
+  width:230px;padding:9px 12px 9px 36px;border-radius:20px;
+  border:1px solid var(--line);background:var(--card);font-size:14px;
+  font-family:inherit;color:var(--ink);outline:none;
+}
+.search-box input:focus{border-color:var(--cinnabar)}
+
+/* ============ 诗词卡片网格 ============ */
+.poem-grid{
+  display:grid;gap:20px;
+  grid-template-columns:repeat(2,1fr);
+}
+@media (min-width:1100px){.poem-grid{grid-template-columns:repeat(4,1fr)}}
+@media (max-width:600px){.poem-grid{grid-template-columns:1fr}}
+.poem-card{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;cursor:pointer;box-shadow:var(--shadow);
+  transition:transform .18s, box-shadow .18s;position:relative;
+}
+.poem-card:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(70,55,30,.14)}
+.card-img{width:100%;height:128px;object-fit:cover;display:block}
+.card-body{padding:12px 14px 14px}
+.card-title{font-family:var(--font-poem);font-size:21px;font-weight:700;letter-spacing:1px}
+.card-meta{font-size:12px;color:var(--ink-faint);margin-top:4px}
+.card-level{
+  display:inline-block;margin-top:8px;font-size:11px;
+  padding:2px 9px;border-radius:10px;background:#EFEAD9;color:var(--ink-soft);
+}
+.card-mark{
+  position:absolute;top:9px;right:9px;display:flex;gap:6px;
+}
+.mark-dot{
+  width:26px;height:26px;border-radius:50%;
+  background:rgba(255,253,247,.92);
+  display:flex;align-items:center;justify-content:center;
+}
+.mark-dot svg{width:15px;height:15px;fill:none;stroke:var(--cinnabar);stroke-width:2}
+.mark-dot.done svg{stroke:var(--jade)}
+.mark-dot.fav svg{fill:var(--cinnabar);stroke:var(--cinnabar)}
+
+/* ============ 空态 ============ */
+.empty{
+  grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--ink-faint);
+}
+.empty svg{width:54px;height:54px;fill:none;stroke:var(--line);stroke-width:1.5;margin-bottom:14px}
+.empty p{font-size:15px}
+
+/* ============ 详情页 ============ */
+.back-link{
+  display:inline-flex;align-items:center;gap:6px;font-size:14px;
+  color:var(--ink-soft);margin-bottom:16px;padding:6px 12px;border-radius:8px;
+}
+.back-link:hover{color:var(--cinnabar);background:var(--card)}
+.back-link svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.detail-banner{
+  width:100%;max-height:360px;object-fit:cover;border-radius:14px;
+  box-shadow:var(--shadow);display:block;
+}
+.detail-head{text-align:center;margin:22px 0 8px}
+.detail-title{font-family:var(--font-poem);font-size:40px;font-weight:700;letter-spacing:4px}
+.detail-meta{color:var(--ink-soft);font-size:15px;margin-top:8px}
+.detail-meta .tag{
+  display:inline-block;margin-left:8px;font-size:12px;padding:2px 10px;
+  border-radius:10px;background:#EFEAD9;color:var(--ink-soft);
+}
+.detail-actions{
+  display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:20px 0 8px;
+}
+.act-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:10px 18px;border-radius:10px;font-size:14px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink-soft);
+  transition:all .15s;
+}
+.act-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.act-btn:hover{border-color:var(--cinnabar);color:var(--cinnabar)}
+.act-btn.primary{background:var(--cinnabar);border-color:var(--cinnabar);color:#fff}
+.act-btn.primary:hover{background:var(--cinnabar-dark)}
+.act-btn.active{background:var(--jade);border-color:var(--jade);color:#fff}
+.act-btn.faved{background:var(--cinnabar);border-color:var(--cinnabar);color:#fff}
+.act-btn.faved svg{fill:#fff}
+.act-btn:disabled{opacity:.6;cursor:default}
+
+/* ============ 诗文区 ============ */
+.poem-text{
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:34px 24px;box-shadow:var(--shadow);margin-top:18px;
+}
+.line{text-align:center;margin:.28em 0}
+.zi{
+  position:relative;display:inline-flex;flex-direction:column;align-items:center;
+  padding:2px 3px;border-radius:7px;cursor:pointer;vertical-align:top;
+}
+.zi .py{
+  display:none;font-family:var(--font-ui);font-size:14px;color:var(--cinnabar);
+  height:17px;line-height:17px;font-weight:500;
+}
+.zi .han{font-family:var(--font-poem);font-size:clamp(30px,4.6vw,42px);line-height:1.35}
+.zi:hover{background:#F0E8D2}
+.zi.on .py{display:block}
+body.pinyin-all .zi .py{display:block}
+.zi .add{
+  display:none;position:absolute;top:-7px;right:-7px;
+  width:17px;height:17px;border-radius:50%;background:var(--gold);
+  color:#fff;font-size:13px;line-height:17px;text-align:center;z-index:2;
+}
+.zi.on .add{display:block}
+.pun{font-family:var(--font-poem);font-size:clamp(30px,4.6vw,42px);padding:0 2px}
+.pinyin-hint{text-align:center;font-size:13px;color:var(--ink-faint);margin-top:18px}
+
+/* ============ 注释 / 译文 / 赏析 ============ */
+.info-tabs{display:flex;gap:8px;margin:24px 0 0}
+.info-tab{
+  flex:1;padding:12px;border-radius:10px 10px 0 0;font-size:15px;
+  border:1px solid var(--line);border-bottom:none;background:#EFE9D8;color:var(--ink-soft);
+}
+.info-tab.active{background:var(--card);color:var(--cinnabar);font-weight:700}
+.info-panel{
+  background:var(--card);border:1px solid var(--line);border-radius:0 0 12px 12px;
+  padding:24px 26px;min-height:150px;box-shadow:var(--shadow);
+}
+.note-item{margin-bottom:14px;font-size:15px}
+.note-item:last-child{margin-bottom:0}
+.note-word{
+  font-family:var(--font-poem);font-weight:700;color:var(--cinnabar);font-size:17px;
+  margin-right:8px;
+}
+.info-panel .trans,.info-panel .appr{font-size:15.5px;color:var(--ink);line-height:1.9}
+.info-empty{color:var(--ink-faint);text-align:center;padding:20px}
+
+/* ============ 生字本 ============ */
+.page-title{font-family:var(--font-poem);font-size:30px;letter-spacing:3px;margin-bottom:6px}
+.page-desc{color:var(--ink-faint);font-size:14px;margin-bottom:22px}
+.word-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+.word-card{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:16px 8px 12px;text-align:center;position:relative;cursor:pointer;box-shadow:var(--shadow);
+}
+.word-card .w-py{font-size:14px;color:var(--cinnabar);height:18px}
+.word-card .w-han{font-family:var(--font-poem);font-size:38px;line-height:1.4}
+.word-card .w-src{font-size:11px;color:var(--ink-faint)}
+.word-card .w-del{
+  position:absolute;top:5px;right:7px;font-size:15px;color:var(--ink-faint);
+  width:20px;height:20px;line-height:18px;border-radius:50%;display:none;
+}
+.word-card:hover .w-del{display:block;background:#F0E8D2;color:var(--cinnabar)}
+
+/* ============ 筛选下拉 ============ */
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.f-select{
+  padding:9px 32px 9px 14px;border-radius:20px;border:1px solid var(--line);
+  background-color:var(--card);color:var(--ink-soft);font-size:14px;font-family:inherit;
+  outline:none;cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C8474' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center;
+}
+.f-select:focus{border-color:var(--cinnabar)}
+
+/* ============ 快捷入口 ============ */
+.quick-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0 4px}
+.quick-card{
+  display:flex;align-items:center;gap:14px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;padding:16px 20px;
+  box-shadow:var(--shadow);text-align:left;transition:all .15s;
+}
+.quick-card:hover{border-color:var(--cinnabar);transform:translateY(-2px)}
+.q-icon{
+  width:44px;height:44px;border-radius:10px;background:#F0E8D2;flex:none;
+  display:flex;align-items:center;justify-content:center;color:var(--cinnabar);
+}
+#quick-stats .q-icon{background:#DFEAE8;color:var(--jade)}
+#quick-words .q-icon{background:#F4EAD0;color:var(--gold)}
+.q-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.q-text b{display:block;font-size:16px;font-family:var(--font-poem);letter-spacing:1px}
+.q-text small{font-size:12px;color:var(--ink-faint)}
+
+/* ============ 游戏中心 ============ */
+.game-menu{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.game-menu-card{
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:28px 26px;box-shadow:var(--shadow);text-align:left;transition:all .15s;cursor:pointer;
+}
+.game-menu-card:hover{border-color:var(--cinnabar);transform:translateY(-3px)}
+.gm-icon{width:54px;height:54px;border-radius:13px;background:#F0E8D2;color:var(--cinnabar);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+#gm-match .gm-icon{background:#DFEAE8;color:var(--jade)}
+.gm-icon svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.game-menu-card h3{font-family:var(--font-poem);font-size:23px;letter-spacing:1px}
+.game-menu-card p{font-size:13.5px;color:var(--ink-faint);margin-top:7px;line-height:1.7}
+
+.game-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.game-score{font-size:15px;color:var(--ink-soft)}
+.game-score b{color:var(--cinnabar);font-size:19px;font-family:var(--font-poem)}
+.game-score .round{margin-left:16px}
+.game-board{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:34px 28px;box-shadow:var(--shadow)}
+.fill-q{text-align:center;font-family:var(--font-poem);font-size:clamp(24px,3.6vw,34px);line-height:2}
+.fill-q .blank{
+  display:inline-block;min-width:1.1em;border-bottom:3px solid var(--cinnabar);
+  color:var(--cinnabar);text-align:center;margin:0 2px;
+}
+.fill-q .blank.right{color:var(--jade);border-color:var(--jade)}
+.fill-q .blank.wrong{color:var(--cinnabar)}
+.fill-options{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:30px}
+.opt-btn{
+  font-family:var(--font-poem);font-size:28px;padding:14px 0;border-radius:11px;
+  border:1px solid var(--line);background:#FBF7EC;transition:all .12s;
+}
+.opt-btn:hover{border-color:var(--cinnabar);color:var(--cinnabar)}
+.opt-btn.right{background:var(--jade);border-color:var(--jade);color:#fff}
+.opt-btn.wrong{background:var(--cinnabar);border-color:var(--cinnabar);color:#fff}
+.opt-btn:disabled{cursor:default;opacity:.7}
+
+.match-cols{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.match-col h4{text-align:center;font-size:14px;color:var(--ink-faint);margin-bottom:12px;font-weight:500}
+.match-btn{
+  width:100%;font-family:var(--font-poem);font-size:clamp(18px,2.4vw,23px);
+  padding:15px 12px;margin-bottom:12px;border-radius:11px;text-align:center;
+  border:1px solid var(--line);background:#FBF7EC;transition:all .15s;line-height:1.5;
+}
+.match-btn:hover{border-color:var(--cinnabar)}
+.match-btn.selected{border:2px solid var(--cinnabar);color:var(--cinnabar);padding:14px 11px}
+.match-btn.matched{background:var(--jade);border-color:var(--jade);color:#fff;pointer-events:none}
+.match-btn.shake{background:var(--cinnabar);border-color:var(--cinnabar);color:#fff;animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.game-result{text-align:center;padding:30px 10px}
+.game-result .gr-num{font-family:var(--font-poem);font-size:52px;color:var(--cinnabar)}
+.game-result p{color:var(--ink-soft);margin:8px 0 24px}
+.result-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* ============ 打卡统计 ============ */
+.stat-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 14px;text-align:center;box-shadow:var(--shadow)}
+.stat-card .sc-num{font-family:var(--font-poem);font-size:30px;font-weight:700}
+.stat-card .sc-name{font-size:12.5px;color:var(--ink-faint);margin-top:3px}
+.sc1 .sc-num{color:var(--cinnabar)} .sc2 .sc-num{color:var(--jade)}
+.sc3 .sc-num{color:var(--gold)} .sc4 .sc-num{color:var(--ink-soft)}
+.chart-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 26px;box-shadow:var(--shadow);margin-bottom:20px}
+.chart-card h3{font-family:var(--font-poem);font-size:20px;letter-spacing:1px;margin-bottom:18px}
+.heatmap{display:grid;grid-template-columns:repeat(10,1fr);gap:7px}
+.heat-cell{aspect-ratio:1;border-radius:4px;background:#ECE5D3;position:relative}
+.heat-cell.l1{background:#E5C2B0}
+.heat-cell.l2{background:#D28A6E}
+.heat-cell.l3{background:var(--cinnabar)}
+.heat-cell.today{box-shadow:0 0 0 2px var(--jade)}
+.heat-legend{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12px;color:var(--ink-faint)}
+.heat-legend .heat-cell{width:14px;height:14px;aspect-ratio:auto}
+.week-bars{display:flex;align-items:flex-end;gap:14px;height:160px;padding:0 6px}
+.week-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.week-bar .wb-fill{width:70%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,#D0735F,var(--cinnabar));min-height:3px;transition:height .4s}
+.week-bar .wb-name{font-size:12px;color:var(--ink-faint);margin-top:8px}
+.week-bar .wb-val{font-size:11px;color:var(--ink-soft);margin-bottom:4px}
+.today-tip{font-size:13px;color:var(--ink-soft);background:#F4EAD0;border-radius:10px;padding:12px 16px;margin-top:4px}
+
+/* ============ 大字模式 ============ */
+body.big-mode .zi .han,body.big-mode .pun{font-size:clamp(40px,7vw,60px)}
+body.big-mode .card-title{font-size:27px}
+body.big-mode .detail-title{font-size:48px}
+body.big-mode .info-panel,body.big-mode .info-panel .trans,body.big-mode .info-panel .appr{font-size:18px}
+body.big-mode .act-btn{font-size:16px;padding:13px 22px}
+body.big-mode .tab{font-size:16px;padding:11px 18px}
+body.big-mode .note-item{font-size:17px}
+body.big-mode .note-word{font-size:19px}
+body.big-mode .pinyin-hint{font-size:15px}
+body.big-mode .card-meta,body.big-mode .card-level{font-size:14px}
+body.big-mode .f-select,body.big-mode .search-box input{font-size:16px}
+#btn-bigfont.active{background:var(--jade);border-color:var(--jade);color:#fff}
+
+@media (max-width:720px){
+  .quick-row{grid-template-columns:1fr}
+  .game-menu{grid-template-columns:1fr}
+  .stat-cards{grid-template-columns:repeat(2,1fr)}
+  .fill-options{grid-template-columns:repeat(2,1fr)}
+  .match-cols{gap:18px}
+  .heatmap{grid-template-columns:repeat(7,1fr)}
+}
+
+/* ============ Toast ============ */
+#toast{
+  position:fixed;left:50%;bottom:40px;transform:translateX(-50%) translateY(20px);
+  background:rgba(46,42,36,.92);color:#fff;font-size:14px;
+  padding:11px 22px;border-radius:24px;opacity:0;pointer-events:none;
+  transition:all .25s;z-index:100;max-width:88vw;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:600px){
+  .hero{padding:20px}
+  .hero-title{font-size:26px}
+  .detail-title{font-size:32px}
+  .brand-sub{display:none}
+  .search-box input{width:180px}
+  .icon-btn{min-height:40px;padding:9px 14px}
+  .tab{min-height:40px;padding:10px 16px;font-size:15px}
+  .search-box input{font-size:16px}
+  .card-meta{font-size:13px}
+  .card-level{font-size:12px}
+  .act-btn{min-height:42px;padding:11px 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 顶栏 ============ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand" onclick="location.hash='#/home'">
+      <div class="brand-seal">诗</div>
+      <div>
+        <div class="brand-name">诗词学习</div>
+        <div class="brand-sub">读 古 诗 · 识 汉 字</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="btn-bigfont" type="button" title="大字模式">
+        <svg viewBox="0 0 24 24"><path d="M4 7V5h13v2"/><path d="M9 5v14"/><path d="M7 19h4"/></svg>大字
+      </button>
+      <button class="icon-btn" onclick="location.hash='#/words'">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        生字本<span class="badge" id="words-badge">0</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+
+<div id="toast"></div>
+
+<script>
+/* ==================== 状态与本地存储 ==================== */
+var STORE_KEY = "poetry-app-v1";
+var state = { learned:{}, fav:{}, words:{}, showAll:false, filter:"all", search:"",
+              dynasty:"all", poet:"all", bigFont:false, daily:{} };
+function saveState(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+}
+function loadState(){
+  try{
+    var s = localStorage.getItem(STORE_KEY);
+    if(s){ var o = JSON.parse(s);
+      state.learned=o.learned||{}; state.fav=o.fav||{};
+      state.words=o.words||{}; state.showAll=!!o.showAll;
+      state.filter=o.filter||"all"; state.search=o.search||"";
+      state.dynasty=o.dynasty||"all"; state.poet=o.poet||"all";
+      state.bigFont=!!o.bigFont; state.daily=o.daily||{};
+    }
+  }catch(e){}
+}
+loadState();
+
+/* ==================== Toast 提示 ==================== */
+var toastTimer=null;
+function toast(msg){
+  var t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ t.classList.remove("show"); },1800);
+}
+
+/* ==================== 语音合成（点读 / 朗读 / 拼读） ==================== */
+var synth = window.speechSynthesis;
+var zhVoice=null;
+function pickVoice(){
+  if(!synth) return;
+  var vs=synth.getVoices();
+  zhVoice = vs.filter(function(v){return /zh[-_]CN/i.test(v.lang);})[0]
+         || vs.filter(function(v){return /^zh/i.test(v.lang);})[0] || null;
+}
+if(synth){ pickVoice(); synth.onvoiceschanged=pickVoice; }
+
+function utter(text, rate, onend){
+  if(!synth){ toast("当前浏览器不支持语音朗读"); if(onend)onend(); return; }
+  var u=new SpeechSynthesisUtterance(text);
+  u.lang="zh-CN"; if(zhVoice)u.voice=zhVoice;
+  u.rate=rate; u.pitch=1.05;
+  u.onend=function(){ if(onend)onend(); };
+  u.onerror=function(){ if(onend)onend(); };
+  synth.speak(u);
+}
+
+var readState={active:false,queue:[],idx:0,mode:null};
+function startReading(poem, mode){
+  stopReading(true);
+  var q=[];
+  if(mode==="line"){
+    poem.lines.forEach(function(line){
+      q.push(line.filter(function(t){return t[1];}).map(function(t){return t[0];}).join(""));
+    });
+  }else{
+    poem.lines.forEach(function(line){
+      line.forEach(function(t){ if(t[1])q.push(t[0]); });
+    });
+  }
+  readState={active:true,queue:q,idx:0,mode:mode};
+  updateReadButtons(); nextRead();
+}
+function nextRead(){
+  if(!readState.active)return;
+  if(readState.idx>=readState.queue.length){ stopReading(); return; }
+  var text=readState.queue[readState.idx++];
+  utter(text, readState.mode==="char"?0.72:0.95, nextRead);
+}
+function stopReading(silent){
+  readState.active=false; readState.queue=[]; readState.idx=0;
+  if(synth)synth.cancel();
+  if(!silent)updateReadButtons();
+}
+/* Chrome 长队列卡死的兜底 */
+setInterval(function(){
+  try{ if(readState.active && synth.paused) synth.resume(); }catch(e){}
+},3000);
+
+function speakChar(c){
+  readState.active=false;
+  if(synth)synth.cancel();
+  updateReadButtons();
+  utter(c,0.72,null);
+}
+
+/* ==================== 打卡数据工具 ==================== */
+function pad2(n){return (n<10?"0":"")+n;}
+function dateKey(d){return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());}
+function todayKey(){return dateKey(new Date());}
+function addDays(base,n){var d=new Date(base);d.setDate(d.getDate()+n);return d;}
+function recordDaily(type){
+  var k=todayKey();
+  if(!state.daily[k])state.daily[k]={learned:0,game:0};
+  state.daily[k][type]=(state.daily[k][type]||0)+1;
+  saveState();
+}
+function dayActive(k){var d=state.daily[k];return !!(d&&((d.learned||0)+(d.game||0)>0));}
+function streakDays(){
+  var d=new Date();
+  if(!dayActive(dateKey(d)))d=addDays(d,-1);
+  var n=0;
+  while(dayActive(dateKey(d))){n++;d=addDays(d,-1);}
+  return n;
+}
+
+/* ==================== 图标与通用工具 ==================== */
+var ICONS={
+  heart:'<svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 1 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+  check:'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+  speaker:'<svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
+  spell:'<svg viewBox="0 0 24 24"><path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/></svg>',
+  pinyin:'<svg viewBox="0 0 24 24"><path d="M3 12h13"/><path d="M11 6l6 6-6 6"/><path d="M20 4v16"/></svg>',
+  search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  back:'<svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
+  book:'<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
+};
+function poemImgSrc(p){ return "assets/"+p.img+".jpg"; }
+function poemSearchText(p){
+  var t=p.title+" "+p.author;
+  p.lines.forEach(function(line){
+    line.forEach(function(tk){ if(tk[1]) t+=tk[0]; });
+  });
+  return t;
+}
+function updateBadges(){
+  document.getElementById("words-badge").textContent=Object.keys(state.words).length;
+}
+function addWord(c,p,srcTitle){
+  state.words[c]={c:c,p:p,src:srcTitle};
+  saveState(); updateBadges();
+  toast("已把“"+c+"”放入生字本");
+}
+
+/* ==================== 视图：首页 ==================== */
+function homeList(){
+  var list=POEMS.filter(function(p){
+    if(state.filter==="low")return p.level==="小学低年级";
+    if(state.filter==="mid")return p.level==="小学中年级";
+    if(state.filter==="high")return p.level==="小学高年级";
+    if(state.filter==="ext")return p.level==="拓展";
+    if(state.filter==="learned")return state.learned[p.id];
+    if(state.filter==="fav")return state.fav[p.id];
+    return true;
+  });
+  if(state.dynasty!=="all")list=list.filter(function(p){return p.dynasty===state.dynasty;});
+  if(state.poet!=="all")list=list.filter(function(p){return p.author===state.poet;});
+  var q=state.search.trim();
+  if(q)list=list.filter(function(p){return poemSearchText(p).indexOf(q)>=0;});
+  return list;
+}
+function gridHtml(list){
+  if(!list.length){
+    return '<div class="empty">'+ICONS.book+'<p>这里还没有诗词，换个筛选条件试试吧</p></div>';
+  }
+  return list.map(function(p){
+    var marks="";
+    if(state.learned[p.id])marks+='<span class="mark-dot done">'+ICONS.check+'</span>';
+    if(state.fav[p.id])marks+='<span class="mark-dot fav">'+ICONS.heart+'</span>';
+    return '<div class="poem-card" data-id="'+p.id+'">'
+      +'<div class="card-mark">'+marks+'</div>'
+      +'<img class="card-img" src="'+poemImgSrc(p)+'" alt="'+p.title+'" loading="lazy">'
+      +'<div class="card-body"><div class="card-title">'+p.title+'</div>'
+      +'<div class="card-meta">['+p.dynasty+'] '+p.author+'</div>'
+      +'<span class="card-level">'+p.level+'</span></div></div>';
+  }).join("");
+}
+function bindCards(root){
+  root.querySelectorAll(".poem-card").forEach(function(c){
+    c.addEventListener("click",function(){ location.hash="#/poem/"+c.getAttribute("data-id"); });
+  });
+}
+function renderHome(){
+  document.body.classList.remove("pinyin-all");
+  var total=POEMS.length;
+  var learnedCount=POEMS.filter(function(p){return state.learned[p.id];}).length;
+  var favCount=Object.keys(state.fav).length;
+  var wordCount=Object.keys(state.words).length;
+  var streak=streakDays();
+  var pct=Math.round(learnedCount/total*100);
+
+  var tabDefs=[["all","全部"],["low","小学低年级"],["mid","小学中年级"],["high","小学高年级"],["ext","拓展"],["learned","已学习"],["fav","我的收藏"]];
+  var tabsHtml=tabDefs.map(function(t){
+    return '<button class="tab'+(state.filter===t[0]?' active':'')+'" data-filter="'+t[0]+'" type="button">'+t[1]+'</button>';
+  }).join("");
+
+  var dynasties=[],poets=[];
+  POEMS.forEach(function(p){
+    if(dynasties.indexOf(p.dynasty)<0)dynasties.push(p.dynasty);
+    if(poets.indexOf(p.author)<0)poets.push(p.author);
+  });
+  function optHtml(allLabel,vals,cur){
+    return '<option value="all">'+allLabel+'</option>'
+      +vals.map(function(v){return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+v+'</option>';}).join("");
+  }
+
+  document.getElementById("app").innerHTML=
+    '<section class="hero">'
+    +'<div><div class="hero-title">小小诗词启蒙</div>'
+    +'<div class="hero-desc">读古诗 · 识汉字 · 每首诗都配有拼音、朗读与插画</div>'
+    +'<div class="hero-stats">'
+    +'<div class="stat"><div class="stat-num">'+favCount+'</div><div class="stat-name">收藏</div></div>'
+    +'<div class="stat"><div class="stat-num">'+wordCount+'</div><div class="stat-name">生字</div></div>'
+    +'<div class="stat"><div class="stat-num">'+streak+'</div><div class="stat-name">连续打卡</div></div>'
+    +'</div></div>'
+    +'<div class="progress-box"><div class="progress-label"><span>学习进度</span><b>'+learnedCount+' / '+total+' 首</b></div>'
+    +'<div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div></div>'
+    +'</section>'
+    +'<div class="quick-row">'
+    +'<button class="quick-card" id="quick-game" type="button"><span class="q-icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="5"/><line x1="7" y1="12" x2="11" y2="12"/><line x1="9" y1="10" x2="9" y2="14"/><circle cx="16" cy="12" r="0.9" fill="currentColor" stroke="none"/><circle cx="18.2" cy="14" r="0.9" fill="currentColor" stroke="none"/></svg></span><span class="q-text"><b>诗词小游戏</b><small>填空 · 连线</small></span></button>'
+    +'<button class="quick-card" id="quick-stats" type="button"><span class="q-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="q-text"><b>学习打卡</b><small>已连续 '+streak+' 天</small></span></button>'
+    +'<button class="quick-card" id="quick-words" type="button"><span class="q-icon">'+ICONS.book+'</span><span class="q-text"><b>生字本</b><small>'+wordCount+' 个生字</small></span></button>'
+    +'</div>'
+    +'<div class="toolbar-row"><div class="tabs">'+tabsHtml+'</div>'
+    +'<div class="filters">'
+    +'<select id="sel-dynasty" class="f-select" aria-label="按朝代筛选">'+optHtml("全部朝代",dynasties,state.dynasty)+'</select>'
+    +'<select id="sel-poet" class="f-select" aria-label="按诗人筛选">'+optHtml("全部诗人",poets,state.poet)+'</select>'
+    +'<div class="search-box">'+ICONS.search+'<input id="search-input" type="text" placeholder="搜索诗名、诗人或诗句" value="'+state.search+'"></div>'
+    +'</div></div>'
+    +'<div class="poem-grid">'+gridHtml(homeList())+'</div>';
+
+  function refreshGrid(){
+    var g=document.querySelector(".poem-grid");
+    g.outerHTML='<div class="poem-grid">'+gridHtml(homeList())+'</div>';
+    bindCards(document.querySelector(".poem-grid"));
+  }
+  bindCards(document.querySelector(".poem-grid"));
+
+  document.querySelectorAll(".tab").forEach(function(t){
+    t.addEventListener("click",function(){
+      state.filter=t.getAttribute("data-filter"); saveState();
+      document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("active");});
+      t.classList.add("active"); refreshGrid();
+    });
+  });
+  document.getElementById("sel-dynasty").addEventListener("change",function(){
+    state.dynasty=this.value; saveState(); refreshGrid();
+  });
+  document.getElementById("sel-poet").addEventListener("change",function(){
+    state.poet=this.value; saveState(); refreshGrid();
+  });
+  var si=document.getElementById("search-input");
+  si.addEventListener("input",function(){
+    state.search=si.value; saveState(); refreshGrid();
+    var nv=document.getElementById("search-input"); nv.focus(); nv.setSelectionRange(nv.value.length,nv.value.length);
+  });
+  document.getElementById("quick-game").addEventListener("click",function(){location.hash="#/games";});
+  document.getElementById("quick-stats").addEventListener("click",function(){location.hash="#/stats";});
+  document.getElementById("quick-words").addEventListener("click",function(){location.hash="#/words";});
+}
+
+/* ==================== 视图：诗词详情 ==================== */
+function updateReadButtons(){
+  var b1=document.getElementById("btn-read-line"), b2=document.getElementById("btn-read-char");
+  if(!b1||!b2)return;
+  var on1=readState.active&&readState.mode==="line";
+  var on2=readState.active&&readState.mode==="char";
+  b1.classList.toggle("active",on1);
+  b2.classList.toggle("active",on2);
+  b1.querySelector(".btn-label").textContent=on1?"停止朗读":"朗读全诗";
+  b2.querySelector(".btn-label").textContent=on2?"停止拼读":"逐字拼读";
+}
+function renderDetail(id){
+  var p=null;
+  POEMS.forEach(function(x){ if(x.id===id)p=x; });
+  if(!p){ location.hash="#/home"; return; }
+  document.body.classList.toggle("pinyin-all",state.showAll);
+
+  var textHtml=p.lines.map(function(line){
+    return '<p class="line">'+line.map(function(t){
+      if(t[1])return '<span class="zi"><span class="py">'+t[1]+'</span><span class="han">'+t[0]+'</span><button class="add" type="button" aria-label="加入生字本">+</button></span>';
+      return '<span class="pun">'+t[0]+'</span>';
+    }).join("")+'</p>';
+  }).join("");
+
+  var notesHtml;
+  if(p.notes && p.notes.length){
+    notesHtml=p.notes.map(function(n){
+      return '<div class="note-item"><span class="note-word">'+n[0]+'</span>'+n[1]+'</div>';
+    }).join("");
+  }else{
+    notesHtml='<div class="info-empty">此诗暂无注释</div>';
+  }
+
+  var transHtml = p.trans
+    ? '<div class="trans">'+p.trans+'</div>'
+    : '<div class="info-empty">暂无译文</div>';
+
+  var apprHtml = p.appr
+    ? '<div class="appr">'+p.appr+'</div>'
+    : '<div class="info-empty">暂无赏析</div>';
+
+  document.getElementById("app").innerHTML=
+    '<button class="back-link" id="btn-back" type="button">'+ICONS.back+'返回诗单</button>'
+    +'<img class="detail-banner" src="'+poemImgSrc(p)+'" alt="'+p.title+'意境图" loading="lazy">'
+    +'<div class="detail-head"><div class="detail-title">'+p.title+'</div>'
+    +'<div class="detail-meta">['+p.dynasty+'] '+p.author+'<span class="tag">'+p.level+'</span></div></div>'
+    +'<div class="detail-actions">'
+    +'<button class="act-btn'+(state.showAll?' active':'')+'" id="btn-pinyin" type="button">'+ICONS.pinyin+'<span class="btn-label">一键拼音</span></button>'
+    +'<button class="act-btn primary" id="btn-read-line" type="button">'+ICONS.speaker+'<span class="btn-label">朗读全诗</span></button>'
+    +'<button class="act-btn" id="btn-read-char" type="button">'+ICONS.spell+'<span class="btn-label">逐字拼读</span></button>'
+    +'<button class="act-btn'+(state.fav[p.id]?' faved':'')+'" id="btn-fav" type="button">'+ICONS.heart+'<span class="btn-label">'+(state.fav[p.id]?'已收藏':'收藏')+'</span></button>'
+    +'<button class="act-btn'+(state.learned[p.id]?' active':'')+'" id="btn-learned" type="button">'+ICONS.check+'<span class="btn-label">'+(state.learned[p.id]?'已学完':'标记已学')+'</span></button>'
+    +'</div>'
+    +'<div class="poem-text">'+textHtml
+    +'<div class="pinyin-hint">小提示：点击任意汉字可听读音、看拼音；点字旁的“+”放入生字本</div></div>'
+    +'<div class="info-tabs">'
+    +'<button class="info-tab active" data-info="notes" type="button">注释</button>'
+    +'<button class="info-tab" data-info="trans" type="button">译文</button>'
+    +'<button class="info-tab" data-info="appr" type="button">赏析</button></div>'
+    +'<div class="info-panel" id="panel-notes">'+notesHtml+'</div>'
+    +'<div class="info-panel hidden" id="panel-trans">'+transHtml+'</div>'
+    +'<div class="info-panel hidden" id="panel-appr">'+apprHtml+'</div>';
+
+  document.getElementById("btn-back").addEventListener("click",function(){ location.hash="#/home"; });
+
+  document.querySelector(".poem-text").addEventListener("click",function(e){
+    var add=e.target.closest(".add");
+    if(add){
+      e.stopPropagation();
+      var zi=add.parentNode;
+      var c=zi.querySelector(".han").textContent, py=zi.querySelector(".py").textContent;
+      if(state.words[c]){ toast("生字本里已经有“"+c+"”啦"); }
+      else addWord(c,py,p.title);
+      return;
+    }
+    var z=e.target.closest(".zi");
+    if(z){ z.classList.toggle("on"); speakChar(z.querySelector(".han").textContent); }
+  });
+
+  document.getElementById("btn-pinyin").addEventListener("click",function(){
+    state.showAll=!state.showAll; saveState();
+    document.body.classList.toggle("pinyin-all",state.showAll);
+    this.classList.toggle("active",state.showAll);
+    toast(state.showAll?"已显示全部拼音":"已隐藏全部拼音");
+  });
+  document.getElementById("btn-read-line").addEventListener("click",function(){
+    if(readState.active&&readState.mode==="line")stopReading();
+    else startReading(p,"line");
+  });
+  document.getElementById("btn-read-char").addEventListener("click",function(){
+    if(readState.active&&readState.mode==="char")stopReading();
+    else startReading(p,"char");
+  });
+  document.getElementById("btn-fav").addEventListener("click",function(){
+    state.fav[p.id]=!state.fav[p.id]; saveState();
+    toast(state.fav[p.id]?"已收藏《"+p.title+"》":"已取消收藏");
+    renderDetail(p.id);
+  });
+  document.getElementById("btn-learned").addEventListener("click",function(){
+    state.learned[p.id]=!state.learned[p.id];
+    if(state.learned[p.id])recordDaily("learned"); else saveState();
+    toast(state.learned[p.id]?"真棒！已标记为学完":"已改为未学习");
+    renderDetail(p.id);
+  });
+
+  document.querySelectorAll(".info-tab").forEach(function(t){
+    t.addEventListener("click",function(){
+      document.querySelectorAll(".info-tab").forEach(function(x){x.classList.remove("active");});
+      t.classList.add("active");
+      ["notes","trans","appr"].forEach(function(k){
+        document.getElementById("panel-"+k).classList.toggle("hidden",t.getAttribute("data-info")!==k);
+      });
+    });
+  });
+
+  updateReadButtons();
+}
+
+/* ==================== 视图：生字本 ==================== */
+function renderWords(){
+  document.body.classList.remove("pinyin-all");
+  var keys=Object.keys(state.words);
+  var html='<div class="page-title">生字本</div>'
+    +'<div class="page-desc">遇到不认识的字，点字旁的“+”就会收进这里；点击卡片可以再听一次读音。</div>';
+  if(!keys.length){
+    html+='<div class="empty" style="padding:60px">'+ICONS.book+'<p>生字本还是空的，去诗词里认识新字吧</p></div>';
+  }else{
+    html+='<div class="word-grid">'+keys.map(function(k){
+      var w=state.words[k];
+      return '<div class="word-card" data-c="'+w.c+'">'
+        +'<button class="w-del" type="button" aria-label="移除">×</button>'
+        +'<div class="w-py">'+w.p+'</div><div class="w-han">'+w.c+'</div>'
+        +'<div class="w-src">出自《'+w.src+'》</div></div>';
+    }).join("")+'</div>';
+  }
+  document.getElementById("app").innerHTML=html;
+
+  document.querySelectorAll(".word-card").forEach(function(c){
+    c.addEventListener("click",function(e){
+      if(e.target.closest(".w-del")){
+        delete state.words[c.getAttribute("data-c")];
+        saveState(); updateBadges(); renderWords();
+        return;
+      }
+      speakChar(c.getAttribute("data-c"));
+    });
+  });
+}
+
+/* ==================== 视图：游戏中心 ==================== */
+function rnd(n){return Math.floor(Math.random()*n);}
+function shuffleArr(a){
+  a=a.slice();
+  for(var i=a.length-1;i>0;i--){var j=rnd(i+1);var t=a[i];a[i]=a[j];a[j]=t;}
+  return a;
+}
+function charPool(){
+  var pool={};
+  POEMS.forEach(function(p){p.lines.forEach(function(line){
+    line.forEach(function(t){if(t[1])pool[t[0]]=1;});
+  });});
+  return Object.keys(pool);
+}
+function lineText(line){return line.filter(function(t){return t[1];}).map(function(t){return t[0];}).join("");}
+
+function renderGames(){
+  document.body.classList.remove("pinyin-all");
+  document.getElementById("app").innerHTML=
+    '<button class="back-link" id="btn-back" type="button">'+ICONS.back+'返回首页</button>'
+    +'<div class="page-title">诗词小游戏</div>'
+    +'<div class="page-desc">在游戏里复习学过的诗句，答对还会计入今天的打卡哦。</div>'
+    +'<div class="game-menu">'
+    +'<div class="game-menu-card" id="gm-fill"><div class="gm-icon">'
+    +'<svg viewBox="0 0 24 24"><path d="M9 3h6"/><path d="M12 3v18"/><path d="M5 21h14"/><path d="M8 8h8"/><path d="M8 13h8"/></svg></div>'
+    +'<h3>诗句填空</h3><p>诗句里藏起了一个字，请你从四个字中选出正确的那一个，共 8 题。</p></div>'
+    +'<div class="game-menu-card" id="gm-match"><div class="gm-icon">'
+    +'<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 7.6 15.8 16.4"/><path d="M18 6h3v3"/></svg></div>'
+    +'<h3>诗句连线</h3><p>先点左边一句，再点右边与它相连的下一句，把 4 组诗句都连起来。</p></div>'
+    +'</div>';
+  document.getElementById("btn-back").addEventListener("click",function(){location.hash="#/home";});
+  document.getElementById("gm-fill").addEventListener("click",startFill);
+  document.getElementById("gm-match").addEventListener("click",startMatch);
+}
+
+/* ---------- 游戏：诗句填空 ---------- */
+var fillState=null;
+function newFillQuestion(){
+  var p=POEMS[rnd(POEMS.length)];
+  var line=p.lines[rnd(p.lines.length)];
+  var idxs=[];
+  line.forEach(function(t,i){if(t[1])idxs.push(i);});
+  var wi=idxs[rnd(idxs.length)];
+  var answer=line[wi][0];
+  var others=shuffleArr(charPool().filter(function(c){return c!==answer;})).slice(0,3);
+  return {p:p,line:line,wi:wi,answer:answer,options:shuffleArr(others.concat(answer))};
+}
+function startFill(){fillState={round:1,right:0,total:8,q:newFillQuestion()};renderFill();}
+function renderFill(){
+  var q=fillState.q;
+  var lineHtml=q.line.map(function(t,i){
+    if(!t[1])return t[0];
+    if(i===q.wi)return '<span class="blank" id="blank">？</span>';
+    return t[0];
+  }).join("");
+  var optsHtml=q.options.map(function(c){
+    return '<button class="opt-btn" type="button" data-c="'+c+'">'+c+'</button>';
+  }).join("");
+  document.getElementById("app").innerHTML=
+    '<div class="game-bar"><button class="back-link" id="btn-back" type="button">'+ICONS.back+'游戏中心</button>'
+    +'<div class="game-score"><span class="round">第 <b>'+fillState.round+'</b> / '+fillState.total+' 题</span>'
+    +'答对 <b>'+fillState.right+'</b> 题</div></div>'
+    +'<div class="game-board"><div class="fill-q" id="fill-q">'+lineHtml+'</div>'
+    +'<div class="fill-options">'+optsHtml+'</div></div>';
+  document.getElementById("btn-back").addEventListener("click",function(){renderGames();});
+  var answered=false;
+  document.querySelectorAll(".opt-btn").forEach(function(b){
+    b.addEventListener("click",function(){
+      if(answered)return;
+      answered=true;
+      var c=b.getAttribute("data-c");
+      var blank=document.getElementById("blank");
+      document.querySelectorAll(".opt-btn").forEach(function(x){x.disabled=true;});
+      if(c===q.answer){
+        b.classList.add("right");blank.classList.add("right");blank.textContent=q.answer;
+        fillState.right++;recordDaily("game");
+      }else{
+        b.classList.add("wrong");blank.classList.add("wrong");blank.textContent=q.answer;
+        document.querySelectorAll(".opt-btn").forEach(function(x){
+          if(x.getAttribute("data-c")===q.answer)x.classList.add("right");
+        });
+      }
+      setTimeout(function(){
+        fillState.round++;
+        if(fillState.round>fillState.total){
+          renderGameResult(fillState.right,fillState.total,startFill,"诗句填空");
+        }else{
+          fillState.q=newFillQuestion();renderFill();
+        }
+      },1100);
+    });
+  });
+}
+
+/* ---------- 游戏：诗句连线 ---------- */
+var matchState=null;
+function startMatch(){
+  var picks=shuffleArr(POEMS.filter(function(p){return p.lines.length>=2;})).slice(0,4);
+  var pairs=picks.map(function(p){
+    var i=rnd(p.lines.length-1);
+    return {top:lineText(p.lines[i]),bottom:lineText(p.lines[i+1])};
+  });
+  matchState={pairs:pairs,leftSel:null,matched:0};
+  renderMatch();
+}
+function renderMatch(){
+  var rights=shuffleArr(matchState.pairs.map(function(pair,i){return {text:pair.bottom,i:i};}));
+  var leftHtml=matchState.pairs.map(function(pair,i){
+    return '<button class="match-btn" type="button" data-side="left" data-i="'+i+'">'+pair.top+'</button>';
+  }).join("");
+  var rightHtml=rights.map(function(r){
+    var done=matchState.pairs[r.i].done;
+    return '<button class="match-btn'+(done?' matched':'')+'" type="button" data-side="right" data-i="'+r.i+'">'+r.text+'</button>';
+  }).join("");
+  document.getElementById("app").innerHTML=
+    '<div class="game-bar"><button class="back-link" id="btn-back" type="button">'+ICONS.back+'游戏中心</button>'
+    +'<div class="game-score">已连对 <b>'+matchState.matched+'</b> / 4 组</div></div>'
+    +'<div class="game-board"><div class="match-cols">'
+    +'<div><h4>先点这一句</h4>'+leftHtml+'</div>'
+    +'<div><h4>再点相连的下一句</h4>'+rightHtml+'</div>'
+    +'</div></div>';
+  document.getElementById("btn-back").addEventListener("click",function(){renderGames();});
+  document.querySelectorAll('.match-btn[data-side="left"]').forEach(function(b){
+    b.addEventListener("click",function(){
+      if(b.classList.contains("matched"))return;
+      document.querySelectorAll('.match-btn[data-side="left"]').forEach(function(x){x.classList.remove("selected");});
+      b.classList.add("selected");
+      matchState.leftSel=parseInt(b.getAttribute("data-i"),10);
+    });
+  });
+  document.querySelectorAll('.match-btn[data-side="right"]').forEach(function(b){
+    b.addEventListener("click",function(){
+      if(b.classList.contains("matched"))return;
+      if(matchState.leftSel===null){toast("请先点左边的一句哦");return;}
+      var ri=parseInt(b.getAttribute("data-i"),10);
+      if(ri===matchState.leftSel){
+        b.classList.add("matched");
+        var lb=document.querySelector('.match-btn[data-side="left"][data-i="'+ri+'"]');
+        lb.classList.add("matched");lb.classList.remove("selected");
+        matchState.pairs[ri].done=true;
+        matchState.matched++;matchState.leftSel=null;recordDaily("game");
+        if(matchState.matched===4){
+          setTimeout(function(){renderGameResult(4,4,startMatch,"诗句连线");},800);
+        }
+      }else{
+        b.classList.add("shake");
+        setTimeout(function(){
+          b.classList.remove("shake");
+          document.querySelectorAll('.match-btn[data-side="left"]').forEach(function(x){x.classList.remove("selected");});
+          matchState.leftSel=null;
+        },500);
+      }
+    });
+  });
+}
+
+/* ---------- 游戏结算 ---------- */
+function renderGameResult(right,total,restart,name){
+  var praise = right===total?"太厉害啦，全部答对！":(right>=total*0.75?"做得真棒，继续加油！":"别灰心，再玩一次会更好！");
+  document.getElementById("app").innerHTML=
+    '<div class="game-board"><div class="game-result">'
+    +'<div class="gr-num">'+right+' / '+total+'</div>'
+    +'<p>'+name+' · '+praise+'</p>'
+    +'<div class="result-actions">'
+    +'<button class="act-btn primary" id="btn-again" type="button">再玩一次</button>'
+    +'<button class="act-btn" id="btn-menu" type="button">返回游戏中心</button>'
+    +'</div></div></div>';
+  document.getElementById("btn-again").addEventListener("click",restart);
+  document.getElementById("btn-menu").addEventListener("click",renderGames);
+}
+
+/* ==================== 视图：学习打卡 ==================== */
+function renderStats(){
+  document.body.classList.remove("pinyin-all");
+  var total=POEMS.length;
+  var learnedCount=POEMS.filter(function(p){return state.learned[p.id];}).length;
+  var gameTotal=0,activeDays=0;
+  Object.keys(state.daily).forEach(function(k){
+    var d=state.daily[k];
+    gameTotal+=d.game||0;
+    if((d.learned||0)+(d.game||0)>0)activeDays++;
+  });
+  var streak=streakDays();
+
+  var cells="";
+  for(var i=49;i>=0;i--){
+    var d=addDays(new Date(),-i),k=dateKey(d);
+    var dd=state.daily[k];
+    var c=dd?(dd.learned||0)+(dd.game||0):0;
+    var lv=c===0?"":(c===1?"l1":(c===2?"l2":"l3"));
+    cells+='<div class="heat-cell '+lv+(i===0?" today":"")+'" title="'+k+'：'+c+' 次学习"></div>';
+  }
+
+  var weekNames=["日","一","二","三","四","五","六"],vals=[];
+  for(var j=6;j>=0;j--){
+    var d2=addDays(new Date(),-j),k2=dateKey(d2),dd2=state.daily[k2];
+    vals.push({name:weekNames[d2.getDay()],val:dd2?(dd2.learned||0)+(dd2.game||0):0});
+  }
+  var maxV=Math.max(3,Math.max.apply(null,vals.map(function(v){return v.val;})));
+  var bars=vals.map(function(v){
+    return '<div class="week-bar"><span class="wb-val">'+(v.val||"")+'</span>'
+      +'<div class="wb-fill" style="height:'+Math.round(v.val/maxV*120)+'px"></div>'
+      +'<span class="wb-name">'+v.name+'</span></div>';
+  }).join("");
+
+  var todayDone=dayActive(todayKey());
+  var tip=todayDone?"今天已经完成学习打卡啦，继续保持！":"今天还没有打卡，去学一首诗或玩一局小游戏吧。";
+
+  document.getElementById("app").innerHTML=
+    '<button class="back-link" id="btn-back" type="button">'+ICONS.back+'返回首页</button>'
+    +'<div class="page-title">学习打卡</div>'
+    +'<div class="page-desc">每天学诗、玩游戏都会自动记录，坚持学习，养成好习惯。</div>'
+    +'<div class="stat-cards">'
+    +'<div class="stat-card sc1"><div class="sc-num">'+streak+'</div><div class="sc-name">连续打卡（天）</div></div>'
+    +'<div class="stat-card sc2"><div class="sc-num">'+learnedCount+'</div><div class="sc-name">已学诗词（首）</div></div>'
+    +'<div class="stat-card sc3"><div class="sc-num">'+gameTotal+'</div><div class="sc-name">累计答题（题）</div></div>'
+    +'<div class="stat-card sc4"><div class="sc-num">'+activeDays+'</div><div class="sc-name">累计打卡（天）</div></div>'
+    +'</div>'
+    +'<div class="chart-card"><h3>近 50 天学习热力</h3>'
+    +'<div class="heatmap">'+cells+'</div>'
+    +'<div class="heat-legend">少<span class="heat-cell"></span><span class="heat-cell l1"></span><span class="heat-cell l2"></span><span class="heat-cell l3"></span>多<span style="margin-left:12px">绿色框为今天</span></div></div>'
+    +'<div class="chart-card"><h3>近 7 天学习次数</h3><div class="week-bars">'+bars+'</div></div>'
+    +'<div class="today-tip">'+tip+'</div>';
+
+  document.getElementById("btn-back").addEventListener("click",function(){location.hash="#/home";});
+}
+
+/* ==================== 路由 ==================== */
+function route(){
+  stopReading(true);
+  var h=location.hash;
+  var m=h.match(/#\/poem\/(.+)/);
+  if(m)renderDetail(decodeURIComponent(m[1]));
+  else if(h==="#/words")renderWords();
+  else if(h==="#/games")renderGames();
+  else if(h==="#/stats")renderStats();
+  else renderHome();
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange",route);
+
+/* 大字模式开关 */
+function applyBigFont(){
+  document.body.classList.toggle("big-mode",state.bigFont);
+  document.getElementById("btn-bigfont").classList.toggle("active",state.bigFont);
+}
+document.getElementById("btn-bigfont").addEventListener("click",function(){
+  state.bigFont=!state.bigFont;saveState();applyBigFont();
+  toast(state.bigFont?"已开启大字模式":"已关闭大字模式");
+});
+applyBigFont();
+
+updateBadges();
+route();
+
+/* ==================== PWA：Service Worker 注册 ==================== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>

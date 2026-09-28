@@ -1,0 +1,26 @@
+{
+  "name": "诗词学习小软件",
+  "short_name": "诗词学习",
+  "description": "读古诗·识汉字·848首诗词拼音朗读与插画",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5EFDF",
+  "theme_color": "#B04A3C",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
